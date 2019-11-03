@@ -2,3 +2,64 @@
     background-color: rgba(255, 255, 255, 0.3);
     text-align: center;
 }
+
+.dashboard {
+    position: relative;
+    width: 300px;
+    height: 43px;
+    left: 100px;
+    top: 10px;
+    font-family: Arial;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 36px;
+    line-height: 42px;
+    display: flex;
+    align-items: center;
+    color: #525252;
+}
+
+.message {
+    position: absolute;
+    width: 526px;
+    height: 24px;
+    left: 100px;
+    top: 110px;
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 23px;
+    display: flex;
+    align-items: center;
+    color: #9B9B9B;
+
+}
+
+.graphBox {
+    position: absolute;
+    width: 1145px;
+    height: 461px;
+    left: 205px;
+    top: 216px;
+    background: #FFFFFF;
+    border: 1px solid #D5D8E0;
+    box-sizing: border-box;
+    border-radius: 5px;
+}
+
+.barGraph {
+    position: absolute;
+    width: 655px;
+    height: 312px;
+    left: 240px;
+    top: 200px;
+}
+
+.pieGraph {
+    position: absolute;
+    width: 600px;
+    height: 400px;
+    left: 900px;
+    top: 200px;
+}
