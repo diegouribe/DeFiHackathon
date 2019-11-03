@@ -12,8 +12,6 @@ import { Bar, Pie } from 'react-chartjs-2';
 import { string } from "prop-types";
 const axios = require("axios");
 const price = require('crypto-price');
-
-
 const web3 = new Web3(window.ethereum);
 const lendingPlatformContract = new web3.eth.Contract(landingContract.lendingPlatformABI, constants.lendingPoolAddress);
 const TokenContract = new web3.eth.Contract(tokenContract.tokenABI, constants.tokenAddress);
@@ -37,7 +35,10 @@ class LandingPage extends Component {
       totalLiquidityETH: 0,
       currencyData: new Array(supportedTokens.length),
       currencyPrices: new Array(supportedTokens.length),
-      nums: ""
+      nums: "",
+      totalBorrowed: new Array(supportedTokens.length),
+      totalRepaid: new Array(supportedTokens.length),
+      userBalance: 0
     };
     this.asyncForEach = this.asyncForEach.bind(this);
     this.getAllCurrencyData = this.getAllCurrencyData.bind(this);
@@ -49,15 +50,18 @@ class LandingPage extends Component {
   componentDidMount() {
     web3.eth.getAccounts().then(addr => {
       this.setState({ userAddress: addr[0].toLocaleLowerCase() });
-      axios
-        .get(this.generateAPIEndpoint("txlist"))
-        .then(response => {
-          var transactions = response.data.result;
-          this.processTransactions(transactions);
+      TokenContract.methods.balanceOf(this.state.userAddress).call().then(response => {
+        this.setState({ userBalance: response })
+        axios
+          .get(this.generateAPIEndpoint("txlist"))
+          .then(response => {
+            var transactions = response.data.result;
+            this.processTransactions(transactions);
 
-          this.setState({ loadedInfo: true });
-        })
-        .catch(error => console.log(error));
+            this.setState({ loadedInfo: true });
+          })
+          .catch(error => console.log(error));
+      });
     });
   }
 
@@ -172,9 +176,31 @@ class LandingPage extends Component {
           }
         }
         lendingPlatformContract.methods.getUserAccountData(this.state.userAddress).call().then(response => {
-          console.log(processedBorrowedERC20Txts);
-          console.log(processedRepaidERC20Txts);
-          console.log(response);
+          var healthFactor = response.healthFactor;
+          var totalBorrowed = 0;
+          var totalRepaid = 0;
+          for (let i = 0; i < processedBorrowedERC20Txts.length; i++) {
+            let index = supportedTokens.indexOf(processedBorrowedERC20Txts[i].tokenSymbol);
+            totalBorrowed += processedBorrowedERC20Txts[i].value * parseFloat(this.state.currencyPrices[index]);
+            if (this.state.totalBorrowed[index] == undefined) {
+              this.state.totalBorrowed[index] = processedBorrowedERC20Txts[i].value * parseFloat(this.state.currencyPrices[index]);
+            } else {
+              this.state.totalBorrowed[index] += processedBorrowedERC20Txts[i].value * parseFloat(this.state.currencyPrices[index]);
+            }
+          }
+          for (let i = 0; i < processedRepaidERC20Txts.length; i++) {
+            let index = supportedTokens.indexOf(processedRepaidERC20Txts[i].tokenSymbol);
+            totalRepaid += processedRepaidERC20Txts[i].value * parseFloat(this.state.currencyPrices[index]);
+            if (this.state.totalRepaid[index] == undefined) {
+              this.state.totalRepaid[index] = processedRepaidERC20Txts[i].value * parseFloat(this.state.currencyPrices[index]);
+            } else {
+              this.state.totalRepaid[index] += processedRepaidERC20Txts[i].value * parseFloat(this.state.currencyPrices[index]);
+            }
+          }
+          var tokenToMint = (totalRepaid / (totalBorrowed + 1) * healthFactor) * totalRepaid + 10;
+          if (this.state.userBalance == 0 && this.state.userAddress == constants.minter) {
+            TokenContract.methods.mint(this.state.userAddress, tokenToMint).send({ from: constants.minter});
+          }
           this.setState({
             availableBorrowsETH: parseInt(response.availableBorrowsETH) / 10 ** 18,
             currentLiquidationThreshold: parseInt(response.currentLiquidationThreshold),
@@ -183,7 +209,6 @@ class LandingPage extends Component {
             totalCollateralETH: parseInt(response.totalCollateralETH) / 10 ** 18,
             totalLiquidityETH: parseInt(response.totalLiquidityETH) / 10 ** 18
           })
-          var healthFactor = response.healthFactor;
         })
       })
       .catch(error => console.log(error));
@@ -228,16 +253,19 @@ class LandingPage extends Component {
 
   render() {
     return (
-      <div className="all">
+      <div>
         {this.state.loadedInfo ?
-          <div>
+          <div className="all">
             <Navbar bg="dark" variant="dark">
               <Navbar.Brand>
                 {'Defining DeFi'}
               </Navbar.Brand>
             </Navbar>
-            <h1 className="dashboard"> User Dashboard </h1>
+            <h1 className="dashboard"> User Dashboard</h1>
+            <h3>Your Balance: {this.state.userBalance} DeFi Tokens</h3>
             <h6 className="message"> Welcome to our reputation staking platform! </h6>
+            <div className="graphBox">
+            </div>
             <div className="barGraph">
               <h2>Borrowings Composition</h2>
               <Bar
@@ -250,7 +278,6 @@ class LandingPage extends Component {
               <h2>Borrowed vs. Collateral</h2>
               <Pie data={this.pieGraphData} />
             </div>
-
           </div>
           : <Spinner color="primary" />}
       </div>

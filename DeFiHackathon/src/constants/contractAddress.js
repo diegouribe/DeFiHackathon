@@ -3,6 +3,7 @@ setContractAddresses.add("0xaf4ef1a755f05dd9d68e9e53f111eb63b05fb1fd");
 setContractAddresses.add("0x0000000000000000000000000000000000000000");
 export const lendingPoolAddress = "0xb36017f5aafde1a9462959f0e53866433d373404";
 export const tokenAddress = "0xcbc2B441093FeBa1C38F22766B41f33ECF068214";
+export const minter = "0xE111dd6Ea4DC73f57314b681C607a3AE015aD87A";
 
 
 export const currencies = {
